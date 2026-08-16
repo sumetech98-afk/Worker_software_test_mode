@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Worker Attendance · Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- QRCode.js library for generating QR codes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
         body {
@@ -129,6 +131,18 @@
             color: #0f172a;
             word-break: break-all;
         }
+        .purchase-card .qr-container {
+            background: white;
+            padding: 16px;
+            border-radius: 20px;
+            margin: 12px auto;
+            display: inline-block;
+            border: 2px solid #e2e8f0;
+        }
+        .purchase-card .qr-container canvas {
+            display: block;
+            margin: 0 auto;
+        }
         .purchase-card .qr-placeholder {
             background: #f1f5f9;
             padding: 30px;
@@ -137,6 +151,7 @@
             font-size: 0.9rem;
             color: #475569;
             border: 2px dashed #cbd5e1;
+            text-align: center;
         }
         .purchase-card .qr-placeholder strong { color: #0f172a; }
         .purchase-card .form-group { margin-bottom: 14px; text-align: left; }
@@ -323,15 +338,15 @@
 <div class="purchase-modal" id="purchaseModal">
     <div class="purchase-card">
         <h2>💳 Purchase Full Version</h2>
-        <div class="sub">One-time payment · lifetime access</div>
+        <div class="sub">499/- For 6month and 899/- for One year access</div>
         <div class="upi-box">
             📱 UPI ID: <span id="upiDisplay">s6154632725482301@slc</span>
         </div>
-        <div class="qr-placeholder">
+        <div class="qr-placeholder" id="qrPlaceholder">
             <strong>📷 QR Code (Scan to Pay)</strong><br>
-            <div style="font-size:3rem; margin:8px 0;">📱</div>
-            <span style="font-size:0.8rem;">UPI ID: s6154632725482301@slc</span><br>
-            <span style="font-size:0.7rem; color:#64748b;">(Scan any UPI app)</span>
+            <div style="font-size:1rem; margin:8px 0; color:#475569;">Loading QR code...</div>
+            <div id="qrCodeContainer" class="qr-container" style="display:none;"></div>
+            <span style="font-size:0.7rem; color:#64748b;">UPI ID: s6154632725482301@slc</span>
         </div>
         <div style="background:#fef9c3; padding:10px; border-radius:30px; font-size:0.8rem; color:#854d0e; margin:10px 0;">
             💰 Amount: ₹499 / ₹999 (choose any)
@@ -564,6 +579,7 @@ const TRIAL_DAYS = 60;
 const CONTACT_EMAIL = 'sumetech98@gmail.com';
 const PASSWORD = 'admin123';
 const ADMIN_EMAIL = 'sumetech98@gmail.com';
+const UPI_ID = 's6154632725482301@slc';
 
 function getTrialStart() {
     let start = localStorage.getItem('trialStart');
@@ -680,12 +696,49 @@ function checkLockAndTrial() {
 }
 
 // ============================================================
+//  QR CODE GENERATION
+// ============================================================
+let qrCodeInstance = null;
+
+function generateQRCode() {
+    const container = document.getElementById('qrCodeContainer');
+    const placeholder = document.getElementById('qrPlaceholder');
+    
+    // Clear previous QR
+    container.innerHTML = '';
+    container.style.display = 'block';
+    
+    // UPI payment URL format: upi://pay?pa=UPI_ID&pn=Name&am=Amount&cu=INR
+    const upiUrl = `upi://pay?pa=${UPI_ID}&pn=Attendance%20Pro&am=499&cu=INR`;
+    
+    try {
+        qrCodeInstance = new QRCode(container, {
+            text: upiUrl,
+            width: 180,
+            height: 180,
+            colorDark: "#0f172a",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        // Hide loading text
+        const loadingText = placeholder.querySelector('div[style*="font-size:1rem"]');
+        if (loadingText) loadingText.textContent = '✅ QR Code ready! Scan to pay';
+    } catch(e) {
+        console.error('QR Generation error:', e);
+        container.innerHTML = `<div style="color:#b91c1c;padding:20px;">⚠️ Could not generate QR. Please use UPI ID directly.</div>`;
+        container.style.display = 'block';
+    }
+}
+
+// ============================================================
 //  PURCHASE MODAL
 // ============================================================
 function openPurchaseModal() {
     document.getElementById('purchaseModal').classList.add('show');
     document.getElementById('purchaseStatus').textContent = '';
     document.getElementById('paymentSuccess').style.display = 'none';
+    // Generate QR when modal opens
+    setTimeout(generateQRCode, 300);
 }
 
 function closePurchaseModal() {
@@ -741,14 +794,13 @@ function sendPaymentProof() {
 }
 
 // ============================================================
-//  UNINSTALL & BACKUP (Data send to email - no location shown in popup)
+//  UNINSTALL & BACKUP
 // ============================================================
 function uninstallApp() {
     if (!confirm('⚠️ WARNING: This will uninstall the app and backup your data.\n\nDo you want to continue?')) {
         return;
     }
 
-    // Prepare data for email
     const subject = encodeURIComponent('UNINSTALL & DATA BACKUP - Attendance Pro');
     const body = encodeURIComponent(
         `UNINSTALL & DATA BACKUP\n\n` +
@@ -765,15 +817,11 @@ function uninstallApp() {
         `${JSON.stringify(data, null, 2)}`
     );
 
-    // Open email client with data (no location shown to user)
     window.location.href = `mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`;
-
-    // Clear all local storage
     localStorage.clear();
 
     alert('✅ Data backup completed. The app will now uninstall.\n\nThank you for using Attendance Pro!');
 
-    // Redirect to a blank page to simulate uninstall
     document.body.innerHTML = `
         <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#f0f2f6;font-family:sans-serif;flex-direction:column;padding:20px;text-align:center;">
             <div style="font-size:4rem;">📤</div>
