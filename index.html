@@ -3,76 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Worker Attendance System</title>
+    <title>Worker Attendance · Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
         body {
             background: #eef2f6;
-            padding: 10px;
             min-height: 100vh;
             display: flex;
             justify-content: center;
+            align-items: center;
+            padding: 12px;
         }
+        /* ---- LOGIN / LOCK SCREEN ---- */
+        .lock-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .lock-card {
+            background: white;
+            max-width: 420px;
+            width: 100%;
+            padding: 30px 24px;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .lock-card .icon { font-size: 3rem; margin-bottom: 6px; }
+        .lock-card h2 { font-size: 1.6rem; color: #0f172a; margin-bottom: 6px; }
+        .lock-card .sub { color: #475569; font-size: 0.9rem; margin-bottom: 20px; }
+        .lock-card .trial-badge {
+            background: #fef9c3; color: #854d0e;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-bottom: 18px;
+        }
+        .lock-card input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #d1d9e6;
+            border-radius: 60px;
+            font-size: 1rem;
+            margin-bottom: 14px;
+            transition: 0.2s;
+        }
+        .lock-card input:focus { border-color: #2563eb; outline: none; }
+        .lock-card .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 60px;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .lock-card .btn:active { transform: scale(0.96); }
+        .lock-card .contact-email {
+            margin-top: 18px;
+            font-size: 0.85rem;
+            color: #1e293b;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .lock-card .contact-email a {
+            color: #2563eb;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .lock-card .error { color: #b91c1c; font-size: 0.85rem; margin-top: 6px; }
+        /* ---- MAIN APP ---- */
         .container {
             max-width: 1000px;
             width: 100%;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            border-radius: 28px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
             padding: 16px 14px;
             margin: 0 auto;
         }
-        h1 {
-            font-size: 1.5rem;
-            color: #1e293b;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            gap: 8px;
-        }
-        .header-right { font-size: 0.8rem; color: #64748b; background: #f1f5f9; padding: 4px 12px; border-radius: 30px; }
-
-        /* Company name */
-        .company-name-input {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
-            background: #f8fafc;
-            padding: 10px 14px;
-            border-radius: 14px;
-            margin-bottom: 16px;
-            border: 1px solid #e2e8f0;
-        }
+        /* .... rest of the styles (same as before, compact) .... */
+        h1 { font-size: 1.5rem; color: #1e293b; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; }
+        .header-right { font-size: 0.8rem; color: #64748b; background: #f1f5f9; padding: 4px 14px; border-radius: 30px; display: flex; align-items: center; gap: 8px; }
+        .company-name-input { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #f8fafc; padding: 10px 14px; border-radius: 20px; margin-bottom: 16px; border: 1px solid #e2e8f0; }
         .company-name-input label { font-weight: 600; color: #0f172a; font-size: 0.9rem; }
-        .company-name-input input {
-            flex: 1;
-            min-width: 140px;
-            padding: 10px 14px;
-            border: 1px solid #d1d9e6;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            background: white;
-        }
+        .company-name-input input { flex: 1; min-width: 140px; padding: 10px 14px; border: 1px solid #d1d9e6; border-radius: 30px; font-size: 0.9rem; background: white; }
         .company-name-input input:focus { border-color: #2563eb; outline: none; }
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 40px;
-            font-weight: 500;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            background: #e2e8f0;
-            color: #0f172a;
-        }
+        .btn { padding: 8px 18px; border: none; border-radius: 40px; font-weight: 500; font-size: 0.85rem; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; background: #e2e8f0; color: #0f172a; }
         .btn-primary { background: #2563eb; color: white; }
         .btn-success { background: #16a34a; color: white; }
         .btn-danger { background: #dc2626; color: white; }
@@ -81,286 +115,75 @@
         .btn-info { background: #0ea5e9; color: white; }
         .btn-advance { background: #b45309; color: white; }
         .btn-upload { background: #2563eb; color: white; }
-        .btn:active { transform: scale(0.96); }
-
-        /* Tabs - mobile friendly */
-        .tabs {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            padding: 4px 0 14px 0;
-            border-bottom: 2px solid #e9edf2;
-            margin-bottom: 18px;
-            scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
-        }
-        .tab {
-            padding: 10px 16px;
-            border: none;
-            background: transparent;
-            font-weight: 500;
-            font-size: 0.85rem;
-            color: #475569;
-            border-radius: 40px;
-            white-space: nowrap;
-            transition: 0.2s;
-            flex-shrink: 0;
-        }
+        .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 14px 0; border-bottom: 2px solid #e9edf2; margin-bottom: 18px; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+        .tab { padding: 10px 16px; border: none; background: transparent; font-weight: 500; font-size: 0.85rem; color: #475569; border-radius: 40px; white-space: nowrap; transition: 0.2s; flex-shrink: 0; }
         .tab.active { background: #2563eb; color: white; }
-        .tab:active { opacity: 0.7; }
-
         .tab-content { display: none; animation: fade 0.25s; }
         .tab-content.active { display: block; }
         @keyframes fade { from { opacity:0.4; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
-
-        /* Cards */
-        .card {
-            background: white;
-            border: 1px solid #e9edf2;
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-        .card-title {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: #0f172a;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
+        .card { background: white; border: 1px solid #e9edf2; border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .card-title { font-size: 1.05rem; font-weight: 600; color: #0f172a; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .badge { padding: 2px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
         .badge-excel { background: #dcfce7; color: #166534; }
         .badge-edit { background: #fef9c3; color: #854d0e; }
         .badge-advance { background: #ffedd5; color: #9a3412; }
-
         .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 768px) {
-            .row { grid-template-columns: 2fr 1fr; }
-        }
-
+        @media (min-width: 768px) { .row { grid-template-columns: 2fr 1fr; } }
         .form-group { margin-bottom: 14px; }
-        .form-group label {
-            display: block;
-            font-weight: 500;
-            color: #1e293b;
-            font-size: 0.85rem;
-            margin-bottom: 4px;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #d1d9e6;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            background: white;
-            -webkit-appearance: none;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: #2563eb;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
-        }
-        .form-group input[readonly] { background: #f1f5f9; color: #1e293b; }
+        .form-group label { display: block; font-weight: 500; color: #1e293b; font-size: 0.85rem; margin-bottom: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px 14px; border: 1px solid #d1d9e6; border-radius: 30px; font-size: 0.9rem; background: white; -webkit-appearance: none; }
+        .form-group input:focus, .form-group select:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+        .form-group input[readonly] { background: #f1f5f9; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
         .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
         .btn-group .btn { flex: 1 0 auto; min-width: 80px; }
-
-        .table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            max-height: 380px;
-            overflow-y: auto;
-            border-radius: 16px;
-            border: 1px solid #edf2f7;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-            min-width: 600px;
-        }
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; max-height: 380px; overflow-y: auto; border-radius: 16px; border: 1px solid #edf2f7; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 600px; }
         table thead { position: sticky; top: 0; z-index: 5; }
-        table th {
-            background: #1e293b;
-            color: white;
-            padding: 10px 8px;
-            text-align: left;
-            white-space: nowrap;
-        }
-        table td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
+        table th { background: #1e293b; color: white; padding: 10px 8px; text-align: left; white-space: nowrap; }
+        table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
         table tr:active { background: #eef2ff; }
         table tr.selected { background: #dbeafe; border-left: 3px solid #2563eb; }
-
         .badge-present { background: #dcfce7; color: #166534; }
         .badge-absent { background: #fee2e2; color: #991b1b; }
         .badge-overtime { background: #fef9c3; color: #854d0e; }
-
-        .stats-grid, .stats-grid-5, .stats-grid-6 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin: 10px 0;
-        }
+        .stats-grid, .stats-grid-5, .stats-grid-6 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 10px 0; }
         @media (min-width: 500px) {
             .stats-grid { grid-template-columns: repeat(4, 1fr); }
             .stats-grid-5 { grid-template-columns: repeat(5, 1fr); }
             .stats-grid-6 { grid-template-columns: repeat(6, 1fr); }
         }
-        .stat-card {
-            background: #f8fafc;
-            padding: 12px 6px;
-            border-radius: 16px;
-            text-align: center;
-            border: 1px solid #e9edf2;
-        }
+        .stat-card { background: #f8fafc; padding: 12px 6px; border-radius: 16px; text-align: center; border: 1px solid #e9edf2; }
         .stat-card .num { font-size: 1.5rem; font-weight: 700; color: #2563eb; }
         .stat-card .label { font-size: 0.7rem; color: #64748b; }
         .stat-card .num-danger { color: #dc2626; }
         .stat-card .num-success { color: #16a34a; }
-
-        .excel-info {
-            background: #f0fdf4;
-            padding: 10px 14px;
-            border-radius: 30px;
-            border-left: 4px solid #16a34a;
-            margin-bottom: 12px;
-            font-size: 0.8rem;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .worker-select-card {
-            background: #f8fafc;
-            padding: 10px 12px;
-            border-radius: 30px;
-            margin-bottom: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-        .worker-select-card select {
-            padding: 10px 14px;
-            border: 1px solid #d1d9e6;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            background: white;
-            flex: 1;
-            min-width: 140px;
-        }
-
-        .edit-hint {
-            background: #fef9c3;
-            padding: 10px 14px;
-            border-radius: 30px;
-            font-size: 0.8rem;
-            color: #854d0e;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .break-section {
-            background: #f0f9ff;
-            padding: 12px 14px;
-            border-radius: 20px;
-            border: 1px solid #b8d4f0;
-            margin: 10px 0;
-        }
+        .excel-info { background: #f0fdf4; padding: 10px 14px; border-radius: 30px; border-left: 4px solid #16a34a; margin-bottom: 12px; font-size: 0.8rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+        .worker-select-card { background: #f8fafc; padding: 10px 12px; border-radius: 30px; margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+        .worker-select-card select { padding: 10px 14px; border: 1px solid #d1d9e6; border-radius: 40px; font-size: 0.85rem; background: white; flex: 1; min-width: 140px; }
+        .edit-hint { background: #fef9c3; padding: 10px 14px; border-radius: 30px; font-size: 0.8rem; color: #854d0e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .break-section { background: #f0f9ff; padding: 12px 14px; border-radius: 20px; border: 1px solid #b8d4f0; margin: 10px 0; }
         .break-section .title { font-weight: 600; color: #0369a1; margin-bottom: 6px; }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 8px 0;
-        }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
         .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: #2563eb; }
-
-        .report-box {
-            background: #f1f5f9;
-            padding: 16px;
-            border-radius: 16px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.7rem;
-            max-height: 400px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            margin-top: 10px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .upload-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 20px;
-            padding: 30px 16px;
-            text-align: center;
-            background: #f8fafc;
-            cursor: pointer;
-            margin: 10px 0;
-        }
+        .report-box { background: #f1f5f9; padding: 16px; border-radius: 16px; font-family: 'Courier New', monospace; font-size: 0.7rem; max-height: 400px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; border: 1px solid #e2e8f0; }
+        .upload-area { border: 2px dashed #cbd5e1; border-radius: 20px; padding: 30px 16px; text-align: center; background: #f8fafc; cursor: pointer; margin: 10px 0; }
         .upload-area:active { background: #eef2ff; border-color: #2563eb; }
         .upload-area .icon { font-size: 2.5rem; }
         .upload-area .text { font-weight: 500; color: #0f172a; margin-top: 6px; }
-        .upload-area .sub-text { font-size: 0.75rem; color: #64748b; }
-
-        .upload-progress {
-            background: #e0f2fe;
-            padding: 12px;
-            border-radius: 30px;
-            display: none;
-            margin-top: 12px;
-        }
+        .upload-progress { background: #e0f2fe; padding: 12px; border-radius: 30px; display: none; margin-top: 12px; }
         .upload-progress.show { display: block; }
-        .upload-progress .bar {
-            height: 8px;
-            background: #2563eb;
-            border-radius: 20px;
-            transition: width 0.4s;
-            width: 0%;
-        }
+        .upload-progress .bar { height: 8px; background: #2563eb; border-radius: 20px; transition: width 0.4s; width: 0%; }
         .mt-10 { margin-top: 10px; }
         .mt-20 { margin-top: 20px; }
         .text-center { text-align: center; }
         .text-muted { color: #64748b; }
-
-        .report-options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-            margin: 12px 0;
-        }
-        @media (min-width: 600px) {
-            .report-options { grid-template-columns: 1fr 1fr; }
-        }
-        .report-option-card {
-            background: #f8fafc;
-            padding: 16px;
-            border-radius: 20px;
-            border: 1px solid #e2e8f0;
-        }
+        .report-options { display: grid; grid-template-columns: 1fr; gap: 16px; margin: 12px 0; }
+        @media (min-width: 600px) { .report-options { grid-template-columns: 1fr 1fr; } }
+        .report-option-card { background: #f8fafc; padding: 16px; border-radius: 20px; border: 1px solid #e2e8f0; }
         .report-option-card .title { font-weight: 600; color: #0f172a; }
         .report-option-card .desc { font-size: 0.8rem; color: #64748b; margin: 4px 0 10px 0; }
-
-        .mt-10 { margin-top: 10px; }
-
-        /* small tweaks */
-        .btn-group .btn { flex: 1 1 auto; }
-        .btn-group .btn:last-child { margin-right: 0; }
         @media (max-width: 480px) {
             .btn { padding: 10px 14px; font-size: 0.8rem; width: 100%; justify-content: center; }
             .btn-group .btn { flex: 1 1 100%; }
@@ -369,13 +192,34 @@
             .container { padding: 12px 10px; }
             .tab { padding: 8px 12px; font-size: 0.75rem; }
         }
+        .lockout-msg { color: #b91c1c; background: #fee2e2; padding: 8px 14px; border-radius: 40px; font-size: 0.8rem; margin-top: 10px; }
     </style>
 </head>
 <body>
-<div class="container">
+
+<!-- ===== LOCK / LOGIN OVERLAY ===== -->
+<div class="lock-overlay" id="lockOverlay">
+    <div class="lock-card">
+        <div class="icon">🔒</div>
+        <h2>Attendance Pro</h2>
+        <div class="sub">Worker management system</div>
+        <div class="trial-badge" id="trialBadge">✅ Trial active · 2 months</div>
+        <div id="lockMessage" style="font-size:0.9rem; margin-bottom:10px; color:#1e293b;">Enter your password to continue</div>
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="off">
+        <button class="btn" onclick="attemptLogin()">🔓 Unlock</button>
+        <div id="loginError" class="error"></div>
+        <div class="contact-email">
+            📧 Need full version? Contact us: <a href="sumetech98@gmail.com">buy@attendancepro.com</a>
+        </div>
+        <div style="margin-top:12px; font-size:0.7rem; color:#94a3b8;">Trial expires after 2 months · purchase to continue</div>
+    </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="container" id="mainApp" style="display:none;">
     <h1>
         <span>👷 Attendance</span>
-        <span class="header-right">📁 Excel</span>
+        <span class="header-right">📁 Excel <span id="trialRemain" style="margin-left:6px;background:#dbeafe;padding:2px 10px;border-radius:30px;font-size:0.7rem;">Trial</span></span>
     </h1>
 
     <div class="company-name-input">
@@ -398,25 +242,15 @@
             <div class="card">
                 <div class="card-title">📋 Records <span class="badge badge-excel">Excel</span></div>
                 <div class="excel-info"><span>📁 Data stored in Excel format</span><span id="recordCount">0 records</span></div>
-                <div class="worker-select-card">
-                    <span style="font-weight:500;">👤 Worker:</span>
-                    <select id="attWorkerFilter" onchange="loadAttendance()"><option value="">All</option></select>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Month</label><select id="filterMonth" onchange="loadAttendance()">
-                        <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
-                        <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
-                        <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
-                    </select></div>
-                    <div class="form-group"><label>Year</label><select id="filterYear" onchange="loadAttendance()"></select></div>
-                </div>
-                <div class="table-container">
-                    <table><thead><tr><th>#</th><th>Date</th><th>Worker</th><th>In</th><th>Out</th><th>Hrs</th><th>OT</th><th>Status</th><th>Salary</th></tr></thead>
-                    <tbody id="attendanceTable"><tr><td colspan="9" class="text-center text-muted">No records</td></tr></tbody>
-                    </table>
-                </div>
+                <div class="worker-select-card"><span style="font-weight:500;">👤 Worker:</span><select id="attWorkerFilter" onchange="loadAttendance()"><option value="">All</option></select></div>
+                <div class="form-row"><div class="form-group"><label>Month</label><select id="filterMonth" onchange="loadAttendance()">
+                    <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
+                    <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
+                    <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                </select></div><div class="form-group"><label>Year</label><select id="filterYear" onchange="loadAttendance()"></select></div></div>
+                <div class="table-container"><table><thead><tr><th>#</th><th>Date</th><th>Worker</th><th>In</th><th>Out</th><th>Hrs</th><th>OT</th><th>Status</th><th>Salary</th></tr></thead>
+                <tbody id="attendanceTable"><tr><td colspan="9" class="text-center text-muted">No records</td></tr></tbody></table></div>
             </div>
-
             <div>
                 <div class="card">
                     <div class="card-title"><span id="formTitle">Add Attendance</span><span class="badge badge-edit" id="editModeBadge" style="display:none;">✏️ Edit</span></div>
@@ -549,7 +383,7 @@
     <div id="tab-excel" class="tab-content">
         <div class="card">
             <div class="card-title">📁 Excel Manager <span class="badge badge-upload">Auto Upload</span></div>
-            <div class="excel-info" style="background:#e0f2fe;border-left-color:#2563eb;"><span>📁 Upload Excel file – data auto-added</span><span id="excelStatus">Ready</span></div>
+            <div class="excel-info" style="background:#e0f2fe;border-left-color:#2563eb;"><span>📁 Upload Excel – data auto-added</span><span id="excelStatus">Ready</span></div>
             <div class="upload-area" onclick="document.getElementById('uploadInput').click()">
                 <div class="icon">📤</div>
                 <div class="text"><strong>Tap to Upload Excel</strong></div>
@@ -573,9 +407,124 @@
 </div>
 
 <script>
-// ============================================
-// DATA
-// ============================================
+// ============================================================
+//  TRIAL & LOCK SYSTEM  (2 months from first run)
+// ============================================================
+const TRIAL_DAYS = 60;  // 2 months
+const CONTACT_EMAIL = 'buy@attendancepro.com';
+const PASSWORD = 'admin123';  // you can change this
+
+function getTrialStart() {
+    let start = localStorage.getItem('trialStart');
+    if (!start) {
+        start = Date.now().toString();
+        localStorage.setItem('trialStart', start);
+    }
+    return parseInt(start);
+}
+
+function getTrialRemainingDays() {
+    const start = getTrialStart();
+    const elapsed = (Date.now() - start) / (1000 * 60 * 60 * 24);
+    return Math.max(0, TRIAL_DAYS - elapsed);
+}
+
+function isTrialExpired() {
+    return getTrialRemainingDays() <= 0;
+}
+
+function isUnlocked() {
+    return localStorage.getItem('unlocked') === 'true';
+}
+
+function lockApp() {
+    localStorage.removeItem('unlocked');
+    document.getElementById('lockOverlay').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+    updateLockScreen();
+}
+
+function unlockApp() {
+    localStorage.setItem('unlocked', 'true');
+    document.getElementById('lockOverlay').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    updateTrialBadge();
+}
+
+function updateLockScreen() {
+    const badge = document.getElementById('trialBadge');
+    const msg = document.getElementById('lockMessage');
+    const email = document.querySelector('.contact-email a');
+    if (email) email.textContent = CONTACT_EMAIL;
+    if (isTrialExpired()) {
+        badge.textContent = '⛔ Trial expired · Purchase required';
+        badge.style.background = '#fee2e2';
+        badge.style.color = '#991b1b';
+        msg.innerHTML = '⛔ Your 2-month trial has ended.<br> Please contact us to purchase the full version.';
+    } else {
+        const days = Math.ceil(getTrialRemainingDays());
+        badge.textContent = `✅ Trial active · ${days} days remaining`;
+        badge.style.background = '#fef9c3';
+        badge.style.color = '#854d0e';
+        msg.innerHTML = `🔑 Enter password to continue (${days} days left)`;
+    }
+}
+
+function updateTrialBadge() {
+    const el = document.getElementById('trialRemain');
+    if (el) {
+        if (isTrialExpired()) {
+            el.textContent = '⚠️ Expired';
+            el.style.background = '#fee2e2';
+            el.style.color = '#991b1b';
+        } else {
+            const days = Math.ceil(getTrialRemainingDays());
+            el.textContent = `${days}d trial`;
+            el.style.background = '#dbeafe';
+            el.style.color = '#1e293b';
+        }
+    }
+}
+
+function attemptLogin() {
+    const pwd = document.getElementById('loginPassword').value;
+    const err = document.getElementById('loginError');
+    if (isTrialExpired()) {
+        err.textContent = '⛔ Trial expired. Please purchase to continue.';
+        return;
+    }
+    if (pwd === PASSWORD) {
+        err.textContent = '';
+        unlockApp();
+    } else {
+        err.textContent = '❌ Incorrect password. Try again.';
+    }
+}
+
+// Auto-lock on load + trial check
+function checkLockAndTrial() {
+    const expired = isTrialExpired();
+    const unlocked = isUnlocked();
+    if (expired) {
+        // force lock if expired
+        localStorage.removeItem('unlocked');
+        document.getElementById('lockOverlay').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        updateLockScreen();
+        return;
+    }
+    if (unlocked) {
+        unlockApp();
+    } else {
+        document.getElementById('lockOverlay').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        updateLockScreen();
+    }
+}
+
+// ============================================================
+//  EXISTING APP LOGIC  (same as before, with minor adjustments)
+// ============================================================
 let data = {
     workers: [
         { id: 1, name: 'Rahul Sharma', department: 'Production', mobile: '9876543210', hourlyRate: 100, overtimeRate: 150 },
@@ -590,19 +539,6 @@ let data = {
     nextAttId: 1,
     nextAdvanceId: 1
 };
-
-// ============================================
-// INIT
-// ============================================
-function init() {
-    loadFromStorage();
-    setupAutoCalculate();
-    populateAllDropdowns();
-    loadWorkers();
-    loadAttendance();
-    loadAdvances();
-    initDateFields();
-}
 
 function loadFromStorage() {
     try {
@@ -672,9 +608,6 @@ function calculateHours() {
     } catch(e) {}
 }
 
-// ============================================
-// SAMPLE DATA
-// ============================================
 function addSampleAttendance() {
     const today = new Date();
     for (let i=0; i<5; i++) {
@@ -712,9 +645,6 @@ function addSampleAdvances() {
     });
 }
 
-// ============================================
-// TAB
-// ============================================
 function showTab(tab) {
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
@@ -726,9 +656,6 @@ function showTab(tab) {
     if (tab === 'reports') populateSingleWorkerDropdown();
 }
 
-// ============================================
-// DROPDOWNS
-// ============================================
 function populateAllDropdowns() {
     ['attWorker','attWorkerFilter','advanceWorker','advanceWorkerFilter','singleWorkerReport'].forEach(id => {
         const sel = document.getElementById(id); if (!sel) return;
@@ -778,9 +705,6 @@ function populateSingleWorkerDropdown() {
     if (current && data.workers.some(w=>w.id==current)) sel.value = current;
 }
 
-// ============================================
-// WORKERS
-// ============================================
 function loadWorkers() {
     const tbody = document.getElementById('workerTable');
     document.getElementById('totalWorkers').textContent = data.workers.length;
@@ -808,7 +732,7 @@ function editWorker(id) {
     document.getElementById('saveWorkerBtn').style.display = 'none';
     document.getElementById('updateWorkerBtn').style.display = 'inline-flex';
     document.getElementById('cancelWorkerEditBtn').style.display = 'inline-flex';
-    document.querySelectorAll('#workerTable tr').forEach(tr => tr.classList.remove('selected'));
+    document.querySelectorAll('#workerTable tr').forEach(tr=>tr.classList.remove('selected'));
     document.querySelector(`#workerTable tr[data-worker-id="${id}"]`)?.classList.add('selected');
 }
 
@@ -872,9 +796,6 @@ function clearWorkerForm() {
 }
 function cancelWorkerEdit() { clearWorkerForm(); alert('Cancelled'); }
 
-// ============================================
-// ATTENDANCE
-// ============================================
 function loadAttendance() {
     const workerId = document.getElementById('attWorkerFilter').value;
     const month = parseInt(document.getElementById('filterMonth').value);
@@ -1030,9 +951,6 @@ function showWorkerSummary(id) {
     `;
 }
 
-// ============================================
-// ADVANCES
-// ============================================
 function loadAdvances() {
     const workerId = document.getElementById('advanceWorkerFilter').value;
     let records = data.advances||[];
@@ -1133,9 +1051,6 @@ function showAdvanceSummary(id) {
     `;
 }
 
-// ============================================
-// REPORTS
-// ============================================
 function generateSingleReport() {
     const workerId = document.getElementById('singleWorkerReport').value;
     if (!workerId) { alert('Select a worker'); return; }
@@ -1242,12 +1157,8 @@ function exportAllReport() {
     const blob = new Blob([content], {type:'text/plain'});
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'report_all.txt'; link.click();
 }
-
 function getMonthName(m) { return ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]; }
 
-// ============================================
-// EXCEL
-// ============================================
 function downloadExcel() {
     const wb = XLSX.utils.book_new();
     const wData = [['ID','Name','Department','Mobile','Hourly Rate','OT Rate']];
@@ -1364,10 +1275,43 @@ function exportAdvancesOnly() {
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'advances_export.xlsx'; link.click();
 }
 
-// ============================================
-// START
-// ============================================
-init();
+// ============================================================
+//  INIT
+// ============================================================
+function initApp() {
+    loadFromStorage();
+    setupAutoCalculate();
+    populateAllDropdowns();
+    loadWorkers();
+    loadAttendance();
+    loadAdvances();
+    initDateFields();
+    // trial badge update
+    updateTrialBadge();
+}
+
+// override init with lock check
+const originalInit = initApp;
+initApp = function() {
+    checkLockAndTrial();
+    if (isUnlocked() && !isTrialExpired()) {
+        originalInit();
+    } else {
+        // still load data in background
+        loadFromStorage();
+    }
+};
+
+// start
+initApp();
+
+// also re-check lock on visibility change (if user leaves page)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        checkLockAndTrial();
+    }
+});
+
 </script>
 </body>
 </html>
