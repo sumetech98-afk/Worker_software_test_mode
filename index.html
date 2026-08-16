@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Worker Attendance System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body {
+            background: #eef2f6;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            padding: 16px 14px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: #1e293b;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 8px;
+        }
+        .header-right { font-size: 0.8rem; color: #64748b; background: #f1f5f9; padding: 4px 12px; border-radius: 30px; }
+
+        /* Company name */
+        .company-name-input {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            background: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+        }
+        .company-name-input label { font-weight: 600; color: #0f172a; font-size: 0.9rem; }
+        .company-name-input input {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 14px;
+            border: 1px solid #d1d9e6;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            background: white;
+        }
+        .company-name-input input:focus { border-color: #2563eb; outline: none; }
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-warning { background: #f59e0b; color: #0f172a; }
+        .btn-excel { background: #1d7a3e; color: white; }
+        .btn-info { background: #0ea5e9; color: white; }
+        .btn-advance { background: #b45309; color: white; }
+        .btn-upload { background: #2563eb; color: white; }
+        .btn:active { transform: scale(0.96); }
+
+        /* Tabs - mobile friendly */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 4px 0 14px 0;
+            border-bottom: 2px solid #e9edf2;
+            margin-bottom: 18px;
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tab {
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: #475569;
+            border-radius: 40px;
+            white-space: nowrap;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .tab.active { background: #2563eb; color: white; }
+        .tab:active { opacity: 0.7; }
+
+        .tab-content { display: none; animation: fade 0.25s; }
+        .tab-content.active { display: block; }
+        @keyframes fade { from { opacity:0.4; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+        /* Cards */
+        .card {
+            background: white;
+            border: 1px solid #e9edf2;
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #0f172a;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .badge { padding: 2px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; }
+        .badge-excel { background: #dcfce7; color: #166534; }
+        .badge-edit { background: #fef9c3; color: #854d0e; }
+        .badge-advance { background: #ffedd5; color: #9a3412; }
+
+        .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        @media (min-width: 768px) {
+            .row { grid-template-columns: 2fr 1fr; }
+        }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #d1d9e6;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            background: white;
+            -webkit-appearance: none;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #2563eb;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .form-group input[readonly] { background: #f1f5f9; color: #1e293b; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+        .btn-group .btn { flex: 1 0 auto; min-width: 80px; }
+
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-height: 380px;
+            overflow-y: auto;
+            border-radius: 16px;
+            border: 1px solid #edf2f7;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            min-width: 600px;
+        }
+        table thead { position: sticky; top: 0; z-index: 5; }
+        table th {
+            background: #1e293b;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        table tr:active { background: #eef2ff; }
+        table tr.selected { background: #dbeafe; border-left: 3px solid #2563eb; }
+
+        .badge-present { background: #dcfce7; color: #166534; }
+        .badge-absent { background: #fee2e2; color: #991b1b; }
+        .badge-overtime { background: #fef9c3; color: #854d0e; }
+
+        .stats-grid, .stats-grid-5, .stats-grid-6 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        @media (min-width: 500px) {
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+            .stats-grid-5 { grid-template-columns: repeat(5, 1fr); }
+            .stats-grid-6 { grid-template-columns: repeat(6, 1fr); }
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 12px 6px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid #e9edf2;
+        }
+        .stat-card .num { font-size: 1.5rem; font-weight: 700; color: #2563eb; }
+        .stat-card .label { font-size: 0.7rem; color: #64748b; }
+        .stat-card .num-danger { color: #dc2626; }
+        .stat-card .num-success { color: #16a34a; }
+
+        .excel-info {
+            background: #f0fdf4;
+            padding: 10px 14px;
+            border-radius: 30px;
+            border-left: 4px solid #16a34a;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .worker-select-card {
+            background: #f8fafc;
+            padding: 10px 12px;
+            border-radius: 30px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .worker-select-card select {
+            padding: 10px 14px;
+            border: 1px solid #d1d9e6;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            background: white;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .edit-hint {
+            background: #fef9c3;
+            padding: 10px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: #854d0e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .break-section {
+            background: #f0f9ff;
+            padding: 12px 14px;
+            border-radius: 20px;
+            border: 1px solid #b8d4f0;
+            margin: 10px 0;
+        }
+        .break-section .title { font-weight: 600; color: #0369a1; margin-bottom: 6px; }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; accent-color: #2563eb; }
+
+        .report-box {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 20px;
+            padding: 30px 16px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .upload-area:active { background: #eef2ff; border-color: #2563eb; }
+        .upload-area .icon { font-size: 2.5rem; }
+        .upload-area .text { font-weight: 500; color: #0f172a; margin-top: 6px; }
+        .upload-area .sub-text { font-size: 0.75rem; color: #64748b; }
+
+        .upload-progress {
+            background: #e0f2fe;
+            padding: 12px;
+            border-radius: 30px;
+            display: none;
+            margin-top: 12px;
+        }
+        .upload-progress.show { display: block; }
+        .upload-progress .bar {
+            height: 8px;
+            background: #2563eb;
+            border-radius: 20px;
+            transition: width 0.4s;
+            width: 0%;
+        }
+        .mt-10 { margin-top: 10px; }
+        .mt-20 { margin-top: 20px; }
+        .text-center { text-align: center; }
+        .text-muted { color: #64748b; }
+
+        .report-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin: 12px 0;
+        }
+        @media (min-width: 600px) {
+            .report-options { grid-template-columns: 1fr 1fr; }
+        }
+        .report-option-card {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+        }
+        .report-option-card .title { font-weight: 600; color: #0f172a; }
+        .report-option-card .desc { font-size: 0.8rem; color: #64748b; margin: 4px 0 10px 0; }
+
+        .mt-10 { margin-top: 10px; }
+
+        /* small tweaks */
+        .btn-group .btn { flex: 1 1 auto; }
+        .btn-group .btn:last-child { margin-right: 0; }
+        @media (max-width: 480px) {
+            .btn { padding: 10px 14px; font-size: 0.8rem; width: 100%; justify-content: center; }
+            .btn-group .btn { flex: 1 1 100%; }
+            .form-row { grid-template-columns: 1fr; }
+            .form-row-3 { grid-template-columns: 1fr 1fr; }
+            .container { padding: 12px 10px; }
+            .tab { padding: 8px 12px; font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>
+        <span>👷 Attendance</span>
+        <span class="header-right">📁 Excel</span>
+    </h1>
+
+    <div class="company-name-input">
+        <label>🏢 Company</label>
+        <input type="text" id="companyName" value="My Company" placeholder="Company name">
+        <button class="btn btn-primary" onclick="saveCompanyName()">Save</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('attendance')">📋 Attendance</button>
+        <button class="tab" onclick="showTab('workers')">👥 Workers</button>
+        <button class="tab" onclick="showTab('advances')">💰 Advances</button>
+        <button class="tab" onclick="showTab('reports')">📊 Reports</button>
+        <button class="tab" onclick="showTab('excel')">📁 Excel</button>
+    </div>
+
+    <!-- ATTENDANCE -->
+    <div id="tab-attendance" class="tab-content active">
+        <div class="row">
+            <div class="card">
+                <div class="card-title">📋 Records <span class="badge badge-excel">Excel</span></div>
+                <div class="excel-info"><span>📁 Data stored in Excel format</span><span id="recordCount">0 records</span></div>
+                <div class="worker-select-card">
+                    <span style="font-weight:500;">👤 Worker:</span>
+                    <select id="attWorkerFilter" onchange="loadAttendance()"><option value="">All</option></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Month</label><select id="filterMonth" onchange="loadAttendance()">
+                        <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
+                        <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option>
+                        <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+                    </select></div>
+                    <div class="form-group"><label>Year</label><select id="filterYear" onchange="loadAttendance()"></select></div>
+                </div>
+                <div class="table-container">
+                    <table><thead><tr><th>#</th><th>Date</th><th>Worker</th><th>In</th><th>Out</th><th>Hrs</th><th>OT</th><th>Status</th><th>Salary</th></tr></thead>
+                    <tbody id="attendanceTable"><tr><td colspan="9" class="text-center text-muted">No records</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title"><span id="formTitle">Add Attendance</span><span class="badge badge-edit" id="editModeBadge" style="display:none;">✏️ Edit</span></div>
+                    <div class="edit-hint" id="editHint" style="display:none;"><span>✏️</span> Editing. Click <strong>Update</strong> to save.</div>
+                    <input type="hidden" id="editAttId">
+                    <div class="form-group"><label>Worker *</label><select id="attWorker"><option value="">Select</option></select></div>
+                    <div class="form-group"><label>Date *</label><input type="date" id="attDate"></div>
+                    <div class="form-row"><div class="form-group"><label>In</label><input type="time" id="attIn" value="09:00"></div>
+                    <div class="form-group"><label>Out</label><input type="time" id="attOut" value="18:00"></div></div>
+                    <div class="break-section"><div class="title">☕ Break</div>
+                    <div class="form-row-3"><div class="form-group"><label>Start</label><input type="time" id="breakStart" value="13:00"></div>
+                    <div class="form-group"><label>End</label><input type="time" id="breakEnd" value="14:00"></div>
+                    <div class="form-group"><label>Hours</label><input type="number" id="breakHours" step="0.5" readonly></div></div>
+                    <div class="checkbox-group"><input type="checkbox" id="includeBreak" checked><label>Deduct break</label></div></div>
+                    <div class="form-row"><div class="form-group"><label>Net Hours</label><input type="number" id="attHours" step="0.5" readonly></div>
+                    <div class="form-group"><label>OT</label><input type="number" id="attOT" step="0.5" readonly></div></div>
+                    <div class="form-group"><label>Break Deducted</label><input type="text" id="breakDeducted" readonly style="background:#f1f5f9;font-weight:500;"></div>
+                    <div class="checkbox-group"><input type="checkbox" id="autoCalc" checked><label>Auto-calc</label></div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" id="saveAttBtn" onclick="saveAttendance()">💾 Save</button>
+                        <button class="btn btn-warning" id="updateAttBtn" onclick="updateAttendance()" style="display:none;">✏️ Update</button>
+                        <button class="btn btn-danger" onclick="deleteAttendance()">🗑️ Delete</button>
+                        <button class="btn btn-info" onclick="clearAttForm()">🔄 Clear</button>
+                        <button class="btn btn-warning" onclick="cancelEdit()" id="cancelEditBtn" style="display:none;">❌ Cancel</button>
+                    </div>
+                </div>
+                <div class="card"><div class="card-title">📈 Worker Summary</div><div id="summaryBox" class="text-muted text-center">Select a worker</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORKERS -->
+    <div id="tab-workers" class="tab-content">
+        <div class="row">
+            <div class="card">
+                <div class="card-title">👥 Workers <span class="badge badge-excel">Excel</span></div>
+                <div class="excel-info"><span>Total: <span id="totalWorkers">0</span></span><span style="font-size:0.7rem;">Tap row to edit</span></div>
+                <div class="table-container"><table><thead><tr><th>ID</th><th>Name</th><th>Dept</th><th>Mobile</th><th>Rate</th><th>OT</th></tr></thead>
+                <tbody id="workerTable"><tr><td colspan="6" class="text-center text-muted">No workers</td></tr></tbody></table></div>
+            </div>
+            <div>
+                <div class="card">
+                    <div class="card-title"><span id="workerFormTitle">Add Worker</span><span class="badge badge-edit" id="workerEditBadge" style="display:none;">✏️ Edit</span></div>
+                    <div class="edit-hint" id="workerEditHint" style="display:none;"><span>✏️</span> Editing worker. Click <strong>Update</strong>.</div>
+                    <input type="hidden" id="editWorkerId">
+                    <div class="form-group"><label>Name *</label><input type="text" id="workerName" placeholder="Name"></div>
+                    <div class="form-group"><label>Department *</label><input type="text" id="workerDept" placeholder="Dept"></div>
+                    <div class="form-group"><label>Mobile</label><input type="tel" id="workerMobile" placeholder="10 digit" maxlength="10"></div>
+                    <div class="form-row"><div class="form-group"><label>Hourly Rate ₹</label><input type="number" id="workerHR" value="100"></div>
+                    <div class="form-group"><label>OT Rate ₹</label><input type="number" id="workerOTR" value="150"></div></div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" id="saveWorkerBtn" onclick="saveWorker()">💾 Save</button>
+                        <button class="btn btn-warning" id="updateWorkerBtn" onclick="updateWorker()" style="display:none;">✏️ Update</button>
+                        <button class="btn btn-danger" onclick="deleteWorker()">🗑️ Delete</button>
+                        <button class="btn btn-info" onclick="clearWorkerForm()">🔄 Clear</button>
+                        <button class="btn btn-warning" onclick="cancelWorkerEdit()" id="cancelWorkerEditBtn" style="display:none;">❌ Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADVANCES -->
+    <div id="tab-advances" class="tab-content">
+        <div class="row">
+            <div class="card">
+                <div class="card-title">💰 Advances <span class="badge badge-advance">Advances</span></div>
+                <div class="excel-info" style="border-left-color:#b45309;background:#fff7ed;"><span>📁 All records</span><span id="advanceCount">0</span></div>
+                <div class="worker-select-card"><span>👤 Worker:</span><select id="advanceWorkerFilter" onchange="loadAdvances()"><option value="">All</option></select></div>
+                <div class="table-container"><table><thead><tr><th>#</th><th>Date</th><th>Worker</th><th>Amount</th><th>Reason</th></tr></thead>
+                <tbody id="advanceTable"><tr><td colspan="5" class="text-center text-muted">No advances</td></tr></tbody></table></div>
+            </div>
+            <div>
+                <div class="card">
+                    <div class="card-title"><span id="advanceFormTitle">Add Advance</span><span class="badge badge-edit" id="advanceEditBadge" style="display:none;">✏️ Edit</span></div>
+                    <input type="hidden" id="editAdvanceId">
+                    <div class="form-group"><label>Worker *</label><select id="advanceWorker"><option value="">Select</option></select></div>
+                    <div class="form-group"><label>Date *</label><input type="date" id="advanceDate"></div>
+                    <div class="form-group"><label>Amount ₹ *</label><input type="number" id="advanceAmount" placeholder="Amount"></div>
+                    <div class="form-group"><label>Reason</label><input type="text" id="advanceReason" placeholder="Reason"></div>
+                    <div class="btn-group">
+                        <button class="btn btn-advance" id="saveAdvanceBtn" onclick="saveAdvance()">💰 Save</button>
+                        <button class="btn btn-warning" id="updateAdvanceBtn" onclick="updateAdvance()" style="display:none;">✏️ Update</button>
+                        <button class="btn btn-danger" onclick="deleteAdvance()">🗑️ Delete</button>
+                        <button class="btn btn-info" onclick="clearAdvanceForm()">🔄 Clear</button>
+                        <button class="btn btn-warning" onclick="cancelAdvanceEdit()" id="cancelAdvanceEditBtn" style="display:none;">❌ Cancel</button>
+                    </div>
+                </div>
+                <div class="card"><div class="card-title">📊 Advance Summary</div><div id="advanceSummary" class="text-muted text-center">Select a worker</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="tab-reports" class="tab-content">
+        <div class="card">
+            <div class="card-title">📊 Monthly Reports <span class="badge badge-advance">With Advances</span></div>
+            <div class="report-options">
+                <div class="report-option-card" style="border-color:#2563eb;background:#eff6ff;">
+                    <div class="title">👤 Single Worker</div>
+                    <div class="desc">Full report with salary & advance</div>
+                    <div class="form-row"><div class="form-group"><label>Worker</label><select id="singleWorkerReport"><option value="">Select</option></select></div>
+                    <div class="form-group"><label>Month</label><select id="singleReportMonth"><option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select></div></div>
+                    <div class="form-row"><div class="form-group"><label>Year</label><select id="singleReportYear"></select></div>
+                    <div class="form-group" style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-primary" onclick="generateSingleReport()" style="flex:1;">📄 Generate</button>
+                    <button class="btn btn-excel" onclick="exportSingleReport()" style="flex:1;">📥 Export</button></div></div>
+                </div>
+                <div class="report-option-card">
+                    <div class="title">📊 All Workers</div>
+                    <div class="desc">Complete monthly report</div>
+                    <div class="form-row"><div class="form-group"><label>Month</label><select id="reportMonth"><option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select></div>
+                    <div class="form-group"><label>Year</label><select id="reportYear"></select></div></div>
+                    <div class="form-row"><div class="form-group" style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-primary" onclick="generateAllReport()" style="flex:1;">📄 Generate</button>
+                    <button class="btn btn-excel" onclick="exportAllReport()" style="flex:1;">📥 Export</button></div></div>
+                </div>
+            </div>
+            <div class="stats-grid-6" id="reportStats">
+                <div class="stat-card"><div class="num" id="rWorkers">0</div><div class="label">Workers</div></div>
+                <div class="stat-card"><div class="num" id="rDays">0</div><div class="label">Days</div></div>
+                <div class="stat-card"><div class="num" id="rHours">0</div><div class="label">Hours</div></div>
+                <div class="stat-card"><div class="num" id="rOT">0</div><div class="label">OT</div></div>
+                <div class="stat-card"><div class="num" id="rSalary">0</div><div class="label">Gross Salary</div></div>
+                <div class="stat-card"><div class="num num-danger" id="rAdvance">0</div><div class="label">Advance</div></div>
+            </div>
+            <div class="report-box" id="reportContent">Select worker & month, click Generate</div>
+        </div>
+    </div>
+
+    <!-- EXCEL -->
+    <div id="tab-excel" class="tab-content">
+        <div class="card">
+            <div class="card-title">📁 Excel Manager <span class="badge badge-upload">Auto Upload</span></div>
+            <div class="excel-info" style="background:#e0f2fe;border-left-color:#2563eb;"><span>📁 Upload Excel file – data auto-added</span><span id="excelStatus">Ready</span></div>
+            <div class="upload-area" onclick="document.getElementById('uploadInput').click()">
+                <div class="icon">📤</div>
+                <div class="text"><strong>Tap to Upload Excel</strong></div>
+                <div class="sub-text">.xlsx / .xls • data added automatically</div>
+            </div>
+            <input type="file" id="uploadInput" accept=".xlsx,.xls" style="display:none;" onchange="autoUploadExcel(event)">
+            <div class="upload-progress" id="uploadProgress"><div style="display:flex;justify-content:space-between;"><span id="uploadStatusText">Uploading...</span><span id="uploadPercent">0%</span></div><div class="bar" id="progressBar"></div></div>
+            <div id="uploadMsg" class="mt-10"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;">
+                <button class="btn btn-excel" onclick="downloadExcel()">⬇️ Download Excel</button>
+                <button class="btn btn-primary" onclick="exportAttendanceOnly()">📋 Attendance</button>
+                <button class="btn btn-success" onclick="exportWorkersOnly()">👥 Workers</button>
+                <button class="btn btn-advance" onclick="exportAdvancesOnly()">💰 Advances</button>
+            </div>
+            <div style="background:#f8fafc;border-radius:16px;padding:14px;font-size:0.75rem;border:1px solid #e2e8f0;">
+                <strong>📋 Excel sheets:</strong> Workers, Attendance, Advances<br>
+                <span class="text-muted">Upload any sheet – data merges automatically.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================
+// DATA
+// ============================================
+let data = {
+    workers: [
+        { id: 1, name: 'Rahul Sharma', department: 'Production', mobile: '9876543210', hourlyRate: 100, overtimeRate: 150 },
+        { id: 2, name: 'Priya Patel', department: 'Quality', mobile: '9876543211', hourlyRate: 120, overtimeRate: 180 },
+        { id: 3, name: 'Amit Kumar', department: 'Packaging', mobile: '9876543212', hourlyRate: 90, overtimeRate: 135 },
+        { id: 4, name: 'Sneha Reddy', department: 'Assembly', mobile: '9876543213', hourlyRate: 110, overtimeRate: 165 }
+    ],
+    attendance: [],
+    advances: [],
+    companyName: 'My Company',
+    nextWorkerId: 5,
+    nextAttId: 1,
+    nextAdvanceId: 1
+};
+
+// ============================================
+// INIT
+// ============================================
+function init() {
+    loadFromStorage();
+    setupAutoCalculate();
+    populateAllDropdowns();
+    loadWorkers();
+    loadAttendance();
+    loadAdvances();
+    initDateFields();
+}
+
+function loadFromStorage() {
+    try {
+        const saved = localStorage.getItem('attendanceData');
+        if (saved) { const parsed = JSON.parse(saved); if (parsed.workers && parsed.workers.length) data = parsed; }
+        const company = localStorage.getItem('companyName');
+        if (company) { document.getElementById('companyName').value = company; data.companyName = company; }
+    } catch(e) {}
+    if (data.attendance.length === 0) addSampleAttendance();
+    if (!data.advances || data.advances.length === 0) addSampleAdvances();
+    saveToStorage();
+}
+
+function saveToStorage() {
+    localStorage.setItem('attendanceData', JSON.stringify(data));
+    localStorage.setItem('companyName', data.companyName);
+}
+
+function saveCompanyName() {
+    const name = document.getElementById('companyName').value.trim();
+    if (name) { data.companyName = name; saveToStorage(); alert('✅ Company name saved!'); }
+}
+
+function initDateFields() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('attDate').value = today;
+    document.getElementById('advanceDate').value = today;
+}
+
+function setupAutoCalculate() {
+    ['attIn', 'attOut', 'breakStart', 'breakEnd'].forEach(id => {
+        document.getElementById(id).addEventListener('change', calculateHours);
+    });
+    document.getElementById('includeBreak').addEventListener('change', calculateHours);
+    document.getElementById('autoCalc').addEventListener('change', calculateHours);
+}
+
+function calculateHours() {
+    if (!document.getElementById('autoCalc').checked) return;
+    const inTime = document.getElementById('attIn').value;
+    const outTime = document.getElementById('attOut').value;
+    if (!inTime || !outTime) return;
+    try {
+        const [ih, im] = inTime.split(':').map(Number);
+        const [oh, om] = outTime.split(':').map(Number);
+        let inMin = ih*60+im, outMin = oh*60+om;
+        if (outMin < inMin) outMin += 1440;
+        let total = (outMin - inMin)/60;
+        let breakH = 0;
+        if (document.getElementById('includeBreak').checked) {
+            const bs = document.getElementById('breakStart').value, be = document.getElementById('breakEnd').value;
+            if (bs && be) {
+                const [bsh, bsm] = bs.split(':').map(Number), [beh, bem] = be.split(':').map(Number);
+                let bsmMin = bsh*60+bsm, bemMin = beh*60+bem;
+                if (bemMin < bsmMin) bemMin += 1440;
+                breakH = (bemMin - bsmMin)/60;
+                if (breakH < 0) breakH = 0;
+            }
+        }
+        let net = total - breakH;
+        if (net < 0) net = 0;
+        let ot = net > 8 ? net - 8 : 0;
+        document.getElementById('breakHours').value = breakH.toFixed(1);
+        document.getElementById('attHours').value = net.toFixed(1);
+        document.getElementById('attOT').value = ot.toFixed(1);
+        document.getElementById('breakDeducted').value = breakH > 0 ? breakH.toFixed(1)+' hrs' : 'No break';
+    } catch(e) {}
+}
+
+// ============================================
+// SAMPLE DATA
+// ============================================
+function addSampleAttendance() {
+    const today = new Date();
+    for (let i=0; i<5; i++) {
+        const d = new Date(today); d.setDate(d.getDate()-i);
+        const dateStr = d.toISOString().split('T')[0];
+        data.workers.forEach(w => {
+            const hours = 8 + Math.random()*1.5;
+            const breakH = Math.random()>0.3 ? 1 : 0.5;
+            const net = hours - breakH;
+            const ot = net > 8 ? net-8 : 0;
+            data.attendance.push({
+                id: data.nextAttId++, workerId: w.id, workerName: w.name, date: dateStr,
+                checkIn: '09:00', checkOut: (18+Math.floor(Math.random()*2)).toString().padStart(2,'0')+':00',
+                breakStart: '13:00', breakEnd: '14:00', breakHours: breakH,
+                hours: Math.round(net*10)/10, overtime: Math.round(ot*10)/10,
+                status: ot > 0 ? 'Overtime' : 'Present',
+                salary: Math.round((net*w.hourlyRate) + (ot*w.overtimeRate))
+            });
+        });
+    }
+}
+
+function addSampleAdvances() {
+    const reasons = ['Emergency','Medical','Family','Festival','Personal'];
+    data.workers.forEach((w, idx) => {
+        for (let i=0; i<2; i++) {
+            const d = new Date(); d.setDate(d.getDate() - (i*3 + idx*2));
+            data.advances.push({
+                id: data.nextAdvanceId++, workerId: w.id, workerName: w.name,
+                date: d.toISOString().split('T')[0],
+                amount: Math.round((100+Math.random()*900)/100)*100,
+                reason: reasons[Math.floor(Math.random()*reasons.length)]
+            });
+        }
+    });
+}
+
+// ============================================
+// TAB
+// ============================================
+function showTab(tab) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'attendance') loadAttendance();
+    if (tab === 'workers') loadWorkers();
+    if (tab === 'advances') loadAdvances();
+    if (tab === 'reports') populateSingleWorkerDropdown();
+}
+
+// ============================================
+// DROPDOWNS
+// ============================================
+function populateAllDropdowns() {
+    ['attWorker','attWorkerFilter','advanceWorker','advanceWorkerFilter','singleWorkerReport'].forEach(id => {
+        const sel = document.getElementById(id); if (!sel) return;
+        const current = sel.value;
+        const isFilter = id==='attWorkerFilter'||id==='advanceWorkerFilter';
+        const isSingle = id==='singleWorkerReport';
+        sel.innerHTML = '';
+        if (isFilter) sel.innerHTML = '<option value="">All Workers</option>';
+        else if (isSingle || id==='advanceWorker' || id==='attWorker') sel.innerHTML = '<option value="">Select Worker</option>';
+        data.workers.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w.id;
+            opt.textContent = w.name + ' (' + w.department + ')';
+            sel.appendChild(opt);
+        });
+        if (current && data.workers.some(w=>w.id==current)) sel.value = current;
+    });
+    const year = new Date().getFullYear();
+    ['filterYear','reportYear','singleReportYear'].forEach(id => {
+        const sel = document.getElementById(id); if (!sel) return;
+        sel.innerHTML = '';
+        for (let y=year-3; y<=year+1; y++) {
+            const opt = document.createElement('option');
+            opt.value = y; opt.textContent = y;
+            if (y===year) opt.selected = true;
+            sel.appendChild(opt);
+        }
+    });
+    const m = new Date().getMonth()+1;
+    ['filterMonth','reportMonth','singleReportMonth'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) sel.value = m;
+    });
+}
+
+function populateSingleWorkerDropdown() {
+    const sel = document.getElementById('singleWorkerReport');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Select Worker</option>';
+    data.workers.forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w.id;
+        opt.textContent = w.name + ' (' + w.department + ')';
+        sel.appendChild(opt);
+    });
+    if (current && data.workers.some(w=>w.id==current)) sel.value = current;
+}
+
+// ============================================
+// WORKERS
+// ============================================
+function loadWorkers() {
+    const tbody = document.getElementById('workerTable');
+    document.getElementById('totalWorkers').textContent = data.workers.length;
+    if (!data.workers.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No workers</td></tr>'; return; }
+    tbody.innerHTML = data.workers.map(w => `
+        <tr onclick="editWorker(${w.id})" data-worker-id="${w.id}">
+            <td>${w.id}</td><td><strong>${w.name}</strong></td><td>${w.department}</td>
+            <td>${w.mobile||'-'}</td><td>₹${w.hourlyRate}</td><td>₹${w.overtimeRate}</td>
+        </tr>
+    `).join('');
+}
+
+function editWorker(id) {
+    const w = data.workers.find(x=>x.id===id);
+    if (!w) return;
+    document.getElementById('editWorkerId').value = w.id;
+    document.getElementById('workerName').value = w.name;
+    document.getElementById('workerDept').value = w.department;
+    document.getElementById('workerMobile').value = w.mobile||'';
+    document.getElementById('workerHR').value = w.hourlyRate;
+    document.getElementById('workerOTR').value = w.overtimeRate;
+    document.getElementById('workerFormTitle').textContent = '✏️ Edit Worker';
+    document.getElementById('workerEditBadge').style.display = 'inline';
+    document.getElementById('workerEditHint').style.display = 'flex';
+    document.getElementById('saveWorkerBtn').style.display = 'none';
+    document.getElementById('updateWorkerBtn').style.display = 'inline-flex';
+    document.getElementById('cancelWorkerEditBtn').style.display = 'inline-flex';
+    document.querySelectorAll('#workerTable tr').forEach(tr => tr.classList.remove('selected'));
+    document.querySelector(`#workerTable tr[data-worker-id="${id}"]`)?.classList.add('selected');
+}
+
+function saveWorker() {
+    const name = document.getElementById('workerName').value.trim();
+    const dept = document.getElementById('workerDept').value.trim();
+    const mobile = document.getElementById('workerMobile').value.trim();
+    const hr = parseFloat(document.getElementById('workerHR').value) || 100;
+    const otr = parseFloat(document.getElementById('workerOTR').value) || 150;
+    if (!name || !dept) { alert('Enter name & department'); return; }
+    if (mobile && !/^[0-9]{10}$/.test(mobile)) { alert('Enter valid 10-digit mobile'); return; }
+    data.workers.push({ id: data.nextWorkerId++, name, department: dept, mobile, hourlyRate: hr, overtimeRate: otr });
+    clearWorkerForm(); saveToStorage(); loadWorkers(); populateAllDropdowns(); alert('✅ Worker added!');
+}
+
+function updateWorker() {
+    const id = document.getElementById('editWorkerId').value;
+    if (!id) { alert('No worker selected'); return; }
+    const name = document.getElementById('workerName').value.trim();
+    const dept = document.getElementById('workerDept').value.trim();
+    const mobile = document.getElementById('workerMobile').value.trim();
+    const hr = parseFloat(document.getElementById('workerHR').value) || 100;
+    const otr = parseFloat(document.getElementById('workerOTR').value) || 150;
+    if (!name || !dept) { alert('Enter name & department'); return; }
+    if (mobile && !/^[0-9]{10}$/.test(mobile)) { alert('Enter valid mobile'); return; }
+    const w = data.workers.find(x=>x.id==id);
+    if (w) {
+        w.name=name; w.department=dept; w.mobile=mobile; w.hourlyRate=hr; w.overtimeRate=otr;
+        data.attendance.forEach(a=>{ if(a.workerId==id) a.workerName=name; });
+        data.advances.forEach(a=>{ if(a.workerId==id) a.workerName=name; });
+        clearWorkerForm(); saveToStorage(); loadWorkers(); populateAllDropdowns(); loadAttendance(); loadAdvances();
+        alert('✅ Worker updated!');
+    }
+}
+
+function deleteWorker() {
+    const id = document.getElementById('editWorkerId').value;
+    if (!id) { alert('Select a worker first'); return; }
+    if (!confirm('Delete worker and all records?')) return;
+    data.workers = data.workers.filter(w=>w.id!=id);
+    data.attendance = data.attendance.filter(a=>a.workerId!=id);
+    data.advances = data.advances.filter(a=>a.workerId!=id);
+    clearWorkerForm(); saveToStorage(); loadWorkers(); populateAllDropdowns(); loadAttendance(); loadAdvances();
+    alert('✅ Worker deleted!');
+}
+
+function clearWorkerForm() {
+    document.getElementById('editWorkerId').value='';
+    document.getElementById('workerName').value='';
+    document.getElementById('workerDept').value='';
+    document.getElementById('workerMobile').value='';
+    document.getElementById('workerHR').value='100';
+    document.getElementById('workerOTR').value='150';
+    document.getElementById('workerFormTitle').textContent='Add Worker';
+    document.getElementById('workerEditBadge').style.display='none';
+    document.getElementById('workerEditHint').style.display='none';
+    document.getElementById('saveWorkerBtn').style.display='inline-flex';
+    document.getElementById('updateWorkerBtn').style.display='none';
+    document.getElementById('cancelWorkerEditBtn').style.display='none';
+    document.querySelectorAll('#workerTable tr').forEach(tr=>tr.classList.remove('selected'));
+}
+function cancelWorkerEdit() { clearWorkerForm(); alert('Cancelled'); }
+
+// ============================================
+// ATTENDANCE
+// ============================================
+function loadAttendance() {
+    const workerId = document.getElementById('attWorkerFilter').value;
+    const month = parseInt(document.getElementById('filterMonth').value);
+    const year = parseInt(document.getElementById('filterYear').value);
+    let records = data.attendance.filter(a => {
+        if (!a.date) return false;
+        const d = new Date(a.date);
+        if (d.getMonth() !== month-1 || d.getFullYear() !== year) return false;
+        if (workerId && a.workerId != workerId) return false;
+        return true;
+    });
+    records.sort((a,b) => new Date(b.date)-new Date(a.date));
+    document.getElementById('recordCount').textContent = records.length + ' records';
+    const tbody = document.getElementById('attendanceTable');
+    if (!records.length) { tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No records</td></tr>'; return; }
+    tbody.innerHTML = records.map((r,i) => `
+        <tr onclick="editAttendance(${r.id})" data-attendance-id="${r.id}">
+            <td>${i+1}</td><td>${r.date}</td><td>${r.workerName}</td>
+            <td>${r.checkIn||'-'}</td><td>${r.checkOut||'-'}</td>
+            <td>${r.hours.toFixed(1)}</td><td>${r.overtime.toFixed(1)}</td>
+            <td><span class="badge badge-${r.status.toLowerCase()}">${r.status}</span></td>
+            <td>₹${r.salary.toFixed(0)}</td>
+        </tr>
+    `).join('');
+    if (workerId) showWorkerSummary(parseInt(workerId));
+    else document.getElementById('summaryBox').innerHTML = '<div class="text-muted text-center">Select a worker</div>';
+}
+
+function editAttendance(id) {
+    const r = data.attendance.find(a=>a.id===id);
+    if (!r) return;
+    document.getElementById('editAttId').value = r.id;
+    document.getElementById('attWorker').value = r.workerId;
+    document.getElementById('attDate').value = r.date;
+    document.getElementById('attIn').value = r.checkIn||'09:00';
+    document.getElementById('attOut').value = r.checkOut||'18:00';
+    document.getElementById('breakStart').value = r.breakStart||'13:00';
+    document.getElementById('breakEnd').value = r.breakEnd||'14:00';
+    document.getElementById('breakHours').value = r.breakHours||0;
+    document.getElementById('attHours').value = r.hours;
+    document.getElementById('attOT').value = r.overtime;
+    document.getElementById('breakDeducted').value = r.breakHours ? r.breakHours+' hrs' : 'No break';
+    document.getElementById('formTitle').textContent = '✏️ Edit Attendance';
+    document.getElementById('editModeBadge').style.display = 'inline';
+    document.getElementById('editHint').style.display = 'flex';
+    document.getElementById('saveAttBtn').style.display = 'none';
+    document.getElementById('updateAttBtn').style.display = 'inline-flex';
+    document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+    document.querySelectorAll('#attendanceTable tr').forEach(tr=>tr.classList.remove('selected'));
+    document.querySelector(`#attendanceTable tr[data-attendance-id="${id}"]`)?.classList.add('selected');
+}
+
+function saveAttendance() {
+    const workerId = parseInt(document.getElementById('attWorker').value);
+    const date = document.getElementById('attDate').value;
+    const checkIn = document.getElementById('attIn').value;
+    const checkOut = document.getElementById('attOut').value;
+    const breakStart = document.getElementById('breakStart').value;
+    const breakEnd = document.getElementById('breakEnd').value;
+    const breakHours = parseFloat(document.getElementById('breakHours').value) || 0;
+    const hours = parseFloat(document.getElementById('attHours').value) || 0;
+    const overtime = parseFloat(document.getElementById('attOT').value) || 0;
+    if (!workerId || !date) { alert('Select worker and date'); return; }
+    const worker = data.workers.find(w=>w.id===workerId);
+    if (!worker) { alert('Worker not found'); return; }
+    const salary = (hours * worker.hourlyRate) + (overtime * worker.overtimeRate);
+    const status = hours===0 ? 'Absent' : (overtime>0 ? 'Overtime' : 'Present');
+    data.attendance.push({ id: data.nextAttId++, workerId, workerName: worker.name, date, checkIn, checkOut,
+        breakStart, breakEnd, breakHours, hours, overtime, status, salary });
+    clearAttForm(); saveToStorage(); loadAttendance(); alert('✅ Attendance saved!');
+}
+
+function updateAttendance() {
+    const id = document.getElementById('editAttId').value;
+    if (!id) { alert('No record selected'); return; }
+    const workerId = parseInt(document.getElementById('attWorker').value);
+    const date = document.getElementById('attDate').value;
+    const checkIn = document.getElementById('attIn').value;
+    const checkOut = document.getElementById('attOut').value;
+    const breakStart = document.getElementById('breakStart').value;
+    const breakEnd = document.getElementById('breakEnd').value;
+    const breakHours = parseFloat(document.getElementById('breakHours').value) || 0;
+    const hours = parseFloat(document.getElementById('attHours').value) || 0;
+    const overtime = parseFloat(document.getElementById('attOT').value) || 0;
+    if (!workerId || !date) { alert('Select worker and date'); return; }
+    const worker = data.workers.find(w=>w.id===workerId);
+    if (!worker) { alert('Worker not found'); return; }
+    const r = data.attendance.find(a=>a.id==id);
+    if (r) {
+        r.workerId=workerId; r.workerName=worker.name; r.date=date; r.checkIn=checkIn; r.checkOut=checkOut;
+        r.breakStart=breakStart; r.breakEnd=breakEnd; r.breakHours=breakHours;
+        r.hours=hours; r.overtime=overtime;
+        r.status = hours===0 ? 'Absent' : (overtime>0 ? 'Overtime' : 'Present');
+        r.salary = (hours * worker.hourlyRate) + (overtime * worker.overtimeRate);
+        clearAttForm(); saveToStorage(); loadAttendance(); alert('✅ Attendance updated!');
+    }
+}
+
+function deleteAttendance() {
+    const id = document.getElementById('editAttId').value;
+    if (!id) { alert('Select a record'); return; }
+    if (!confirm('Delete?')) return;
+    data.attendance = data.attendance.filter(a=>a.id!=id);
+    clearAttForm(); saveToStorage(); loadAttendance(); alert('✅ Deleted!');
+}
+
+function clearAttForm() {
+    document.getElementById('editAttId').value='';
+    document.getElementById('attDate').value=new Date().toISOString().split('T')[0];
+    document.getElementById('attIn').value='09:00';
+    document.getElementById('attOut').value='18:00';
+    document.getElementById('breakStart').value='13:00';
+    document.getElementById('breakEnd').value='14:00';
+    document.getElementById('breakHours').value='';
+    document.getElementById('attHours').value='';
+    document.getElementById('attOT').value='';
+    document.getElementById('breakDeducted').value='';
+    document.getElementById('formTitle').textContent='Add Attendance';
+    document.getElementById('editModeBadge').style.display='none';
+    document.getElementById('editHint').style.display='none';
+    document.getElementById('saveAttBtn').style.display='inline-flex';
+    document.getElementById('updateAttBtn').style.display='none';
+    document.getElementById('cancelEditBtn').style.display='none';
+    document.querySelectorAll('#attendanceTable tr').forEach(tr=>tr.classList.remove('selected'));
+}
+function cancelEdit() { clearAttForm(); alert('Cancelled'); }
+
+function showWorkerSummary(id) {
+    const worker = data.workers.find(w=>w.id===id);
+    if (!worker) return;
+    const att = data.attendance.filter(a=>a.workerId===id);
+    const totalHours = att.reduce((s,a)=>s+a.hours,0);
+    const totalOT = att.reduce((s,a)=>s+a.overtime,0);
+    const totalSalary = att.reduce((s,a)=>s+a.salary,0);
+    const totalBreak = att.reduce((s,a)=>s+(a.breakHours||0),0);
+    const advances = data.advances.filter(a=>a.workerId===id);
+    const totalAdvance = advances.reduce((s,a)=>s+a.amount,0);
+    const net = totalSalary - totalAdvance;
+    document.getElementById('summaryBox').innerHTML = `
+        <div style="font-weight:600;">${worker.name}</div>
+        <div style="font-size:0.8rem;color:#64748b;">${worker.department} | ${worker.mobile||'N/A'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:8px;">
+            <div class="stat-card"><div class="num">${att.length}</div><div class="label">Days</div></div>
+            <div class="stat-card"><div class="num">${totalHours.toFixed(1)}</div><div class="label">Hrs</div></div>
+            <div class="stat-card"><div class="num">${totalOT.toFixed(1)}</div><div class="label">OT</div></div>
+            <div class="stat-card"><div class="num">${totalBreak.toFixed(1)}</div><div class="label">Break</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;border-top:1px solid #e9edf2;padding-top:8px;">
+            <div class="stat-card"><div class="num">₹${totalSalary.toFixed(0)}</div><div class="label">Gross</div></div>
+            <div class="stat-card"><div class="num num-danger">₹${totalAdvance.toFixed(0)}</div><div class="label">Advance</div></div>
+            <div class="stat-card"><div class="num" style="color:${net<0?'#dc2626':'#16a34a'};">₹${net.toFixed(0)}</div><div class="label">Net</div></div>
+        </div>
+    `;
+}
+
+// ============================================
+// ADVANCES
+// ============================================
+function loadAdvances() {
+    const workerId = document.getElementById('advanceWorkerFilter').value;
+    let records = data.advances||[];
+    if (workerId) records = records.filter(a=>a.workerId==workerId);
+    records.sort((a,b)=>new Date(b.date)-new Date(a.date));
+    document.getElementById('advanceCount').textContent = records.length + ' records';
+    const tbody = document.getElementById('advanceTable');
+    if (!records.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No advances</td></tr>'; return; }
+    tbody.innerHTML = records.map((r,i) => `
+        <tr onclick="editAdvance(${r.id})" data-advance-id="${r.id}">
+            <td>${i+1}</td><td>${r.date}</td><td>${r.workerName}</td>
+            <td>₹${r.amount.toFixed(0)}</td><td>${r.reason||'-'}</td>
+        </tr>
+    `).join('');
+    if (workerId) showAdvanceSummary(parseInt(workerId));
+    else document.getElementById('advanceSummary').innerHTML = '<div class="text-muted text-center">Select a worker</div>';
+}
+
+function editAdvance(id) {
+    const r = data.advances.find(a=>a.id===id);
+    if (!r) return;
+    document.getElementById('editAdvanceId').value = r.id;
+    document.getElementById('advanceWorker').value = r.workerId;
+    document.getElementById('advanceDate').value = r.date;
+    document.getElementById('advanceAmount').value = r.amount;
+    document.getElementById('advanceReason').value = r.reason||'';
+    document.getElementById('advanceFormTitle').textContent = '✏️ Edit Advance';
+    document.getElementById('advanceEditBadge').style.display = 'inline';
+    document.getElementById('saveAdvanceBtn').style.display = 'none';
+    document.getElementById('updateAdvanceBtn').style.display = 'inline-flex';
+    document.getElementById('cancelAdvanceEditBtn').style.display = 'inline-flex';
+    document.querySelectorAll('#advanceTable tr').forEach(tr=>tr.classList.remove('selected'));
+    document.querySelector(`#advanceTable tr[data-advance-id="${id}"]`)?.classList.add('selected');
+}
+
+function saveAdvance() {
+    const workerId = parseInt(document.getElementById('advanceWorker').value);
+    const date = document.getElementById('advanceDate').value;
+    const amount = parseFloat(document.getElementById('advanceAmount').value);
+    const reason = document.getElementById('advanceReason').value.trim();
+    if (!workerId || !date || !amount) { alert('Fill all required fields'); return; }
+    if (amount <= 0) { alert('Enter valid amount'); return; }
+    const worker = data.workers.find(w=>w.id===workerId);
+    if (!worker) { alert('Worker not found'); return; }
+    data.advances.push({ id: data.nextAdvanceId++, workerId, workerName: worker.name, date, amount, reason });
+    clearAdvanceForm(); saveToStorage(); loadAdvances(); alert('✅ Advance saved!');
+}
+
+function updateAdvance() {
+    const id = document.getElementById('editAdvanceId').value;
+    if (!id) { alert('No record selected'); return; }
+    const workerId = parseInt(document.getElementById('advanceWorker').value);
+    const date = document.getElementById('advanceDate').value;
+    const amount = parseFloat(document.getElementById('advanceAmount').value);
+    const reason = document.getElementById('advanceReason').value.trim();
+    if (!workerId || !date || !amount) { alert('Fill all fields'); return; }
+    const r = data.advances.find(a=>a.id==id);
+    if (r) {
+        const worker = data.workers.find(w=>w.id===workerId);
+        r.workerId=workerId; r.workerName=worker?worker.name:'Unknown';
+        r.date=date; r.amount=amount; r.reason=reason;
+        clearAdvanceForm(); saveToStorage(); loadAdvances(); alert('✅ Advance updated!');
+    }
+}
+
+function deleteAdvance() {
+    const id = document.getElementById('editAdvanceId').value;
+    if (!id) { alert('Select a record'); return; }
+    if (!confirm('Delete advance?')) return;
+    data.advances = data.advances.filter(a=>a.id!=id);
+    clearAdvanceForm(); saveToStorage(); loadAdvances(); alert('✅ Deleted!');
+}
+
+function clearAdvanceForm() {
+    document.getElementById('editAdvanceId').value='';
+    document.getElementById('advanceDate').value=new Date().toISOString().split('T')[0];
+    document.getElementById('advanceAmount').value='';
+    document.getElementById('advanceReason').value='';
+    document.getElementById('advanceFormTitle').textContent='Add Advance';
+    document.getElementById('advanceEditBadge').style.display='none';
+    document.getElementById('saveAdvanceBtn').style.display='inline-flex';
+    document.getElementById('updateAdvanceBtn').style.display='none';
+    document.getElementById('cancelAdvanceEditBtn').style.display='none';
+    document.querySelectorAll('#advanceTable tr').forEach(tr=>tr.classList.remove('selected'));
+}
+function cancelAdvanceEdit() { clearAdvanceForm(); alert('Cancelled'); }
+
+function showAdvanceSummary(id) {
+    const worker = data.workers.find(w=>w.id===id);
+    if (!worker) return;
+    const advances = data.advances.filter(a=>a.workerId===id);
+    const total = advances.reduce((s,a)=>s+a.amount,0);
+    document.getElementById('advanceSummary').innerHTML = `
+        <div style="font-weight:600;">${worker.name}</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#b45309;">₹${total.toFixed(0)}</div>
+        <div style="font-size:0.8rem;color:#64748b;">${advances.length} advances</div>
+        ${advances.map(a=>`<div style="font-size:0.75rem;">${a.date} ₹${a.amount.toFixed(0)} ${a.reason?'('+a.reason+')':''}</div>`).join('')}
+    `;
+}
+
+// ============================================
+// REPORTS
+// ============================================
+function generateSingleReport() {
+    const workerId = document.getElementById('singleWorkerReport').value;
+    if (!workerId) { alert('Select a worker'); return; }
+    const month = parseInt(document.getElementById('singleReportMonth').value);
+    const year = parseInt(document.getElementById('singleReportYear').value);
+    const worker = data.workers.find(w=>w.id==workerId);
+    if (!worker) return;
+    const records = data.attendance.filter(a=>{
+        if (!a.date) return false;
+        const d = new Date(a.date);
+        return a.workerId==workerId && d.getMonth()===month-1 && d.getFullYear()===year;
+    });
+    const advances = data.advances.filter(a=>{
+        if (!a.date) return false;
+        const d = new Date(a.date);
+        return a.workerId==workerId && d.getMonth()===month-1 && d.getFullYear()===year;
+    });
+    const totalHours = records.reduce((s,r)=>s+r.hours,0);
+    const totalOT = records.reduce((s,r)=>s+r.overtime,0);
+    const totalSalary = records.reduce((s,r)=>s+r.salary,0);
+    const totalBreak = records.reduce((s,r)=>s+(r.breakHours||0),0);
+    const totalAdvance = advances.reduce((s,a)=>s+a.amount,0);
+    const net = totalSalary - totalAdvance;
+    document.getElementById('rWorkers').textContent='1';
+    document.getElementById('rDays').textContent=records.length;
+    document.getElementById('rHours').textContent=totalHours.toFixed(1);
+    document.getElementById('rOT').textContent=totalOT.toFixed(1);
+    document.getElementById('rSalary').textContent='₹'+totalSalary.toFixed(0);
+    document.getElementById('rAdvance').textContent='₹'+totalAdvance.toFixed(0);
+    let report = `${'='.repeat(80)}\n`;
+    report += `  ${data.companyName.toUpperCase()}\n  SINGLE WORKER REPORT\n  ${getMonthName(month)} ${year}\n  ${new Date().toLocaleString()}\n${'='.repeat(80)}\n\n`;
+    report += `👤 ${worker.name} (${worker.department})\n   Rate: ₹${worker.hourlyRate}/hr | OT: ₹${worker.overtimeRate}/hr\n`;
+    report += `${'-'.repeat(80)}\n📊 SUMMARY\n   Days: ${records.length} | Hours: ${totalHours.toFixed(1)} | OT: ${totalOT.toFixed(1)} | Break: ${totalBreak.toFixed(1)}\n`;
+    report += `   Gross: ₹${totalSalary.toFixed(0)} | Advance: ₹${totalAdvance.toFixed(0)} | Net: ₹${net.toFixed(0)}\n${'-'.repeat(80)}\n`;
+    if (advances.length) { report += `💰 ADVANCES\n`; advances.forEach(a=>report+=`   ${a.date} ₹${a.amount.toFixed(0)} ${a.reason||''}\n`); report+=`\n`; }
+    report += `📋 DAILY\n${'Date'.padEnd(14)} In  Out  Hrs  OT  Status  Salary\n`;
+    records.forEach(r=>{
+        report += `${r.date.padEnd(14)} ${(r.checkIn||'-').padEnd(4)} ${(r.checkOut||'-').padEnd(4)} ${r.hours.toFixed(1).padEnd(4)} ${r.overtime.toFixed(1).padEnd(4)} ${r.status.padEnd(8)} ₹${r.salary.toFixed(0)}\n`;
+    });
+    report += `${'='.repeat(80)}\n`;
+    document.getElementById('reportContent').textContent = report;
+}
+
+function generateAllReport() {
+    const month = parseInt(document.getElementById('reportMonth').value);
+    const year = parseInt(document.getElementById('reportYear').value);
+    const records = data.attendance.filter(a=>{
+        if (!a.date) return false;
+        const d = new Date(a.date);
+        return d.getMonth()===month-1 && d.getFullYear()===year;
+    });
+    const advances = data.advances.filter(a=>{
+        if (!a.date) return false;
+        const d = new Date(a.date);
+        return d.getMonth()===month-1 && d.getFullYear()===year;
+    });
+    const workers = new Set(records.map(r=>r.workerId)).size;
+    const totalHours = records.reduce((s,r)=>s+r.hours,0);
+    const totalOT = records.reduce((s,r)=>s+r.overtime,0);
+    const totalSalary = records.reduce((s,r)=>s+r.salary,0);
+    const totalBreak = records.reduce((s,r)=>s+(r.breakHours||0),0);
+    const totalAdvance = advances.reduce((s,a)=>s+a.amount,0);
+    const net = totalSalary - totalAdvance;
+    document.getElementById('rWorkers').textContent=workers;
+    document.getElementById('rDays').textContent=records.length;
+    document.getElementById('rHours').textContent=totalHours.toFixed(1);
+    document.getElementById('rOT').textContent=totalOT.toFixed(1);
+    document.getElementById('rSalary').textContent='₹'+totalSalary.toFixed(0);
+    document.getElementById('rAdvance').textContent='₹'+totalAdvance.toFixed(0);
+    let report = `${'='.repeat(80)}\n  ${data.companyName.toUpperCase()}\n  ALL WORKERS REPORT\n  ${getMonthName(month)} ${year}\n  ${new Date().toLocaleString()}\n${'='.repeat(80)}\n\n`;
+    const groups = {};
+    records.forEach(r=>{
+        if(!groups[r.workerId]) {
+            const w = data.workers.find(x=>x.id===r.workerId);
+            groups[r.workerId] = { name: w?w.name:'Unknown', dept: w?w.department:'', mobile: w?w.mobile||'N/A':'N/A', days: [], advances: advances.filter(a=>a.workerId==r.workerId) };
+        }
+        groups[r.workerId].days.push(r);
+    });
+    Object.keys(groups).forEach(id=>{
+        const g = groups[id];
+        const th = g.days.reduce((s,d)=>s+d.hours,0);
+        const to = g.days.reduce((s,d)=>s+d.overtime,0);
+        const ts = g.days.reduce((s,d)=>s+d.salary,0);
+        const tb = g.days.reduce((s,d)=>s+(d.breakHours||0),0);
+        const ta = g.advances.reduce((s,a)=>s+a.amount,0);
+        const n = ts - ta;
+        report += `👤 ${g.name} (${g.dept}) | 📱 ${g.mobile}\n   Days: ${g.days.length} | Hrs: ${th.toFixed(1)} | OT: ${to.toFixed(1)} | Break: ${tb.toFixed(1)}\n   Salary: ₹${ts.toFixed(0)} | Advance: ₹${ta.toFixed(0)} | Net: ₹${n.toFixed(0)}\n`;
+        if (g.advances.length) { report += `   Advances: `; g.advances.forEach(a=>report+=`${a.date} ₹${a.amount.toFixed(0)}; `); report+=`\n`; }
+        report += `\n`;
+    });
+    report += `${'='.repeat(80)}\nGRAND TOTAL\n   Workers: ${workers} | Days: ${records.length} | Hours: ${totalHours.toFixed(1)} | OT: ${totalOT.toFixed(1)}\n   Gross: ₹${totalSalary.toFixed(0)} | Advance: ₹${totalAdvance.toFixed(0)} | Net: ₹${net.toFixed(0)}\n${'='.repeat(80)}`;
+    document.getElementById('reportContent').textContent = report;
+}
+
+function exportSingleReport() {
+    const content = document.getElementById('reportContent').textContent;
+    if (!content || content.includes('Select worker')) { alert('Generate report first'); return; }
+    const blob = new Blob([content], {type:'text/plain'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'report.txt'; link.click();
+}
+function exportAllReport() {
+    const content = document.getElementById('reportContent').textContent;
+    if (!content || content.includes('Select month')) { alert('Generate report first'); return; }
+    const blob = new Blob([content], {type:'text/plain'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'report_all.txt'; link.click();
+}
+
+function getMonthName(m) { return ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1]; }
+
+// ============================================
+// EXCEL
+// ============================================
+function downloadExcel() {
+    const wb = XLSX.utils.book_new();
+    const wData = [['ID','Name','Department','Mobile','Hourly Rate','OT Rate']];
+    data.workers.forEach(w=>wData.push([w.id, w.name, w.department, w.mobile||'', w.hourlyRate, w.overtimeRate]));
+    const ws1 = XLSX.utils.aoa_to_sheet(wData); XLSX.utils.book_append_sheet(wb, ws1, 'Workers');
+    const aData = [['ID','Worker ID','Worker Name','Date','In','Out','Break Start','Break End','Break Hours','Net Hours','OT','Status','Salary']];
+    data.attendance.forEach(a=>aData.push([a.id, a.workerId, a.workerName, a.date, a.checkIn, a.checkOut, a.breakStart||'', a.breakEnd||'', a.breakHours||0, a.hours, a.overtime, a.status, a.salary]));
+    const ws2 = XLSX.utils.aoa_to_sheet(aData); XLSX.utils.book_append_sheet(wb, ws2, 'Attendance');
+    const advData = [['ID','Worker ID','Worker Name','Date','Amount','Reason']];
+    data.advances.forEach(a=>advData.push([a.id, a.workerId, a.workerName, a.date, a.amount, a.reason||'']));
+    const ws3 = XLSX.utils.aoa_to_sheet(advData); XLSX.utils.book_append_sheet(wb, ws3, 'Advances');
+    const cData = [['Company Name', data.companyName], ['Generated', new Date().toLocaleString()]];
+    const ws4 = XLSX.utils.aoa_to_sheet(cData); XLSX.utils.book_append_sheet(wb, ws4, 'Info');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {type:'application/octet-stream'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'attendance_data.xlsx'; link.click();
+}
+
+function autoUploadExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const progressDiv = document.getElementById('uploadProgress');
+    progressDiv.classList.add('show');
+    document.getElementById('uploadStatusText').textContent = 'Reading...';
+    document.getElementById('uploadPercent').textContent = '0%';
+    document.getElementById('progressBar').style.width = '0%';
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            document.getElementById('uploadStatusText').textContent = 'Processing...';
+            document.getElementById('uploadPercent').textContent = '50%';
+            document.getElementById('progressBar').style.width = '50%';
+            const workbook = XLSX.read(e.target.result, { type: 'array' });
+            let workersAdded=0, attendanceAdded=0, advancesAdded=0;
+            const existingWorkerIds = new Set(data.workers.map(w=>w.id));
+            const existingAttIds = new Set(data.attendance.map(a=>a.id));
+            const existingAdvIds = new Set(data.advances.map(a=>a.id));
+            const wsWorkers = workbook.Sheets['Workers'];
+            if (wsWorkers) {
+                const rows = XLSX.utils.sheet_to_json(wsWorkers);
+                rows.forEach(r=>{
+                    const id = r['ID']||0;
+                    if(!existingWorkerIds.has(id)) {
+                        data.workers.push({ id: data.nextWorkerId++, name: r['Name']||'', department: r['Department']||'', mobile: r['Mobile']||'', hourlyRate: r['Hourly Rate']||100, overtimeRate: r['OT Rate']||150 });
+                        workersAdded++;
+                    }
+                });
+            }
+            const wsAttendance = workbook.Sheets['Attendance'];
+            if (wsAttendance) {
+                const rows = XLSX.utils.sheet_to_json(wsAttendance);
+                rows.forEach(r=>{
+                    const id = r['ID']||0;
+                    if(!existingAttIds.has(id)) {
+                        const worker = data.workers.find(w=>w.id==(r['Worker ID']||0));
+                        data.attendance.push({ id: data.nextAttId++, workerId: r['Worker ID']||0, workerName: worker?worker.name:(r['Worker Name']||'Unknown'), date: r['Date']||'', checkIn: r['In']||'', checkOut: r['Out']||'', breakStart: r['Break Start']||'', breakEnd: r['Break End']||'', breakHours: r['Break Hours']||0, hours: r['Net Hours']||0, overtime: r['OT']||0, status: r['Status']||'Present', salary: r['Salary']||0 });
+                        attendanceAdded++;
+                    }
+                });
+            }
+            const wsAdvances = workbook.Sheets['Advances'];
+            if (wsAdvances) {
+                const rows = XLSX.utils.sheet_to_json(wsAdvances);
+                rows.forEach(r=>{
+                    const id = r['ID']||0;
+                    if(!existingAdvIds.has(id)) {
+                        data.advances.push({ id: data.nextAdvanceId++, workerId: r['Worker ID']||0, workerName: r['Worker Name']||'Unknown', date: r['Date']||'', amount: r['Amount']||0, reason: r['Reason']||'' });
+                        advancesAdded++;
+                    }
+                });
+            }
+            saveToStorage();
+            document.getElementById('uploadStatusText').textContent = '✅ Done!';
+            document.getElementById('uploadPercent').textContent = '100%';
+            document.getElementById('progressBar').style.width = '100%';
+            document.getElementById('uploadMsg').innerHTML = `<div style="background:#dcfce7;padding:12px;border-radius:16px;color:#166534;">✅ Uploaded: ${workersAdded} workers, ${attendanceAdded} attendance, ${advancesAdded} advances</div>`;
+            populateAllDropdowns(); loadWorkers(); loadAttendance(); loadAdvances();
+            setTimeout(()=>{ document.getElementById('uploadProgress').classList.remove('show'); }, 3000);
+        } catch(err) {
+            document.getElementById('uploadMsg').innerHTML = `<div style="background:#fee2e2;padding:12px;border-radius:16px;color:#991b1b;">❌ Error: ${err.message}</div>`;
+            document.getElementById('uploadProgress').classList.remove('show');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function exportAttendanceOnly() {
+    const wb = XLSX.utils.book_new();
+    const data2 = [['ID','Worker','Date','In','Out','Break','Hours','OT','Status','Salary']];
+    data.attendance.forEach(a=>data2.push([a.id, a.workerName, a.date, a.checkIn, a.checkOut, a.breakHours||0, a.hours, a.overtime, a.status, a.salary]));
+    const ws = XLSX.utils.aoa_to_sheet(data2); XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {type:'application/octet-stream'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'attendance_export.xlsx'; link.click();
+}
+
+function exportWorkersOnly() {
+    const wb = XLSX.utils.book_new();
+    const data2 = [['ID','Name','Department','Mobile','Hourly Rate','OT Rate']];
+    data.workers.forEach(w=>data2.push([w.id, w.name, w.department, w.mobile||'', w.hourlyRate, w.overtimeRate]));
+    const ws = XLSX.utils.aoa_to_sheet(data2); XLSX.utils.book_append_sheet(wb, ws, 'Workers');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {type:'application/octet-stream'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'workers_export.xlsx'; link.click();
+}
+
+function exportAdvancesOnly() {
+    const wb = XLSX.utils.book_new();
+    const data2 = [['ID','Worker','Date','Amount','Reason']];
+    data.advances.forEach(a=>data2.push([a.id, a.workerName, a.date, a.amount, a.reason||'']));
+    const ws = XLSX.utils.aoa_to_sheet(data2); XLSX.utils.book_append_sheet(wb, ws, 'Advances');
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], {type:'application/octet-stream'});
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'advances_export.xlsx'; link.click();
+}
+
+// ============================================
+// START
+// ============================================
+init();
+</script>
+</body>
+</html>
